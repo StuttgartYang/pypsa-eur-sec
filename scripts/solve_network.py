@@ -46,7 +46,30 @@ def patch_pyomo_tmpdir(tmpdir):
     from pyutilib.services import TempfileManager
     TempfileManager.tempdir = tmpdir
 
+def leap_year(y):
+    if y % 400 == 0:
+        return True
+    if y % 100 == 0:
+        return False
+    if y % 4 == 0:
+        return True
+    else:
+        return False
+
+def cut_snapshots(n):
+    df = pd.DataFrame(n.snapshots)
+    df['datetime'] = pd.to_datetime(df['name'])
+    df = df.set_index('datetime')
+    df.drop(['name'], axis=1, inplace=True)
+    date = str(n.snapshots[0].year) + "-02-29"
+    to_drop = df[date]
+    df.drop(to_drop.index, axis=0, inplace=True)
+    n.set_snapshots(df.index)
+    return n
+
 def prepare_network(n, solve_opts=None):
+    if leap_year(n.snapshots[0].year):
+        n = cut_snapshots(n)
     if solve_opts is None:
         solve_opts = snakemake.config['solving']['options']
 
